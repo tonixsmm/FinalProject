@@ -16,8 +16,14 @@ def load_apple():
     df["creationDate"] = pd.to_datetime(df["creationDate"])
     return df
 
+def load_netflix():
+    nf = pd.read_csv("NetflixViewingHistory.csv")
+    nf["Date"] = pd.to_datetime(nf["Date"])
+    nf.sort_values(by="Date", inplace=True, ignore_index=True)
+    return nf
+
 def sleep_filtering(df):
-    df = df[df.type == "HKCategoryTypeIdentifierSleepAnalysis"]
+    df = df[df.type == "HKCategoryTypeIdentifierSleepAnalysis"].copy()
     return df
 
 def sleep_cleaning(df):
@@ -55,11 +61,12 @@ def sem_split(df):
     df["creationDate"] = df["creationDate"].dt.strftime("%Y-%m-%d")
 
     # Semester split
-    fall_22 = df[(df.creationDate >= "2022-08-30") & (df.creationDate <= "2022-11-29")]
-    spring_22 = df[(df.creationDate >= "2022-01-12") & (df.creationDate <= "2022-05-05")]
+    fall_22 = df[(df.creationDate >= "2022-08-30") & (df.creationDate <= "2022-11-29")].copy()
+    spring_22 = df[(df.creationDate >= "2022-01-12") & (df.creationDate <= "2022-05-05")].copy()
 
     # Groupby
-    fall_22 = fall_22.groupby("creationDate").sum()
+    fall_22 = fall_22.groupby("creationDate")["sleepTime"].sum()
+    spring_22 = spring_22.groupby("creationDate")["sleepTime"].sum()
     # fa22_grouped_by_creationDate = fall_22.groupby("creationDate").sum()
     # sp22_grouped_by_creationDate = spring_22.groupby("creationDate").sum()
     # fall_22 = pd.concat([fall_22, fa22_grouped_by_creationDate], axis=1, ignore_index=False)
@@ -82,6 +89,28 @@ def dow_merge(fall_22, spring_22):
     spring_22.set_index("key_0", inplace=True)
     spring_22.index = pd.to_datetime(spring_22.index)
     spring_22.rename({"key_0": "creationDate"}, axis=1, inplace=True)
+    return fall_22, spring_22
+
+def netflix_count(nf):
+    # Fall 22
+    nf_fa22 = nf[(nf.Date >= "2022-08-30") & (nf.Date <= "2022-11-29")]
+    grouped_nf_fa22 = nf_fa22.groupby("Date").count()
+    nf_fa22.rename({"Title": "numberWatched"}, axis=1, inplace=True)
+
+    # Spring 22
+    nf_sp22 = nf[(nf.Date >= "2022-01-12") & (nf.Date <= "2022-05-05")]
+    grouped_nf_sp22 = nf_sp22.groupby("Date").count()
+    nf_sp22.rename({"Title": "numberWatched"}, axis=1, inplace=True)
+    return grouped_nf_fa22, grouped_nf_sp22
+
+def health_nf_merge(fall_22, spring_22, nf_fa22, nf_sp22):
+    # Fall 22
+    fall_22 = fall_22.merge(nf_fa22, how="outer", right_index=True, left_index=True)
+    fall_22["sleepTime"] = fall_22["sleepTime"] / timedelta(hours=1)
+
+    # Spring 22
+    spring_22 = spring_22.merge(nf_sp22, how="outer", right_index=True, left_index=True)
+    spring_22["sleepTime"] = spring_22["sleepTime"] / timedelta(hours=1)
     return fall_22, spring_22
 
 def data_visualization(df, sem):
