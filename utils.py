@@ -54,12 +54,26 @@ def time_calculation(df):
     df.rename({0: "sleepTime"}, axis=1, inplace=True)
     return sleepTime, df
 
-def sem_split(df):
+def dow_merge(df):
+    dow_df = pd.read_csv("dow.csv")
+    df = df.merge(dow_df, on=df.index)
+    df.drop("date", axis=1, inplace=True)
+    df.rename({"key_0": "creationDate"}, axis=1, inplace=True)
+    df["creationDate"] = pd.to_datetime(df["creationDate"])
+    return df
+
+def sleep_groupby(df):
     # Date format conversion
     df["startDate"] = df["startDate"].dt.strftime("%Y-%m-%d")
     df["endDate"] = df["endDate"].dt.strftime("%Y-%m-%d")
     df["creationDate"] = df["creationDate"].dt.strftime("%Y-%m-%d")
 
+    # Groupby
+    df = df.groupby("creationDate")["sleepTime"].sum()
+    df = df.to_frame()
+    return df
+
+def sem_split(df):
     # Semester split
     fall_22 = df[(df.creationDate >= "2022-08-30") & (df.creationDate <= "2022-11-29")].copy()
     spring_22 = df[(df.creationDate >= "2022-01-12") & (df.creationDate <= "2022-05-05")].copy()
@@ -67,38 +81,17 @@ def sem_split(df):
     # Groupby
     fall_22 = fall_22.groupby("creationDate")["sleepTime"].sum()
     spring_22 = spring_22.groupby("creationDate")["sleepTime"].sum()
-    # fa22_grouped_by_creationDate = fall_22.groupby("creationDate").sum()
-    # sp22_grouped_by_creationDate = spring_22.groupby("creationDate").sum()
-    # fall_22 = pd.concat([fall_22, fa22_grouped_by_creationDate], axis=1, ignore_index=False)
-    # # df.rename({0: "sleepTime"}, axis=1, inplace=True)
-    # spring_22 = pd.concat([spring_22, sp22_grouped_by_creationDate], axis=1, ignore_index=False)
 
-    return fall_22, spring_22
-
-def dow_merge(fall_22, spring_22):
-    # Fall 22
-    date_fa22 = pd.read_csv("fall_22_dow.csv", index_col=0)
-    fall_22 = fall_22.merge(date_fa22, on=fall_22.index)
-    fall_22.set_index("key_0", inplace=True)
-    fall_22.index = pd.to_datetime(fall_22.index)
-    fall_22.rename({"key_0": "creationDate"}, axis=1, inplace=True)
-
-    # Spring 22
-    date_sp22 = pd.read_csv("spring_22_dow.csv", index_col=0)
-    spring_22 = spring_22.merge(date_sp22, on=spring_22.index)
-    spring_22.set_index("key_0", inplace=True)
-    spring_22.index = pd.to_datetime(spring_22.index)
-    spring_22.rename({"key_0": "creationDate"}, axis=1, inplace=True)
     return fall_22, spring_22
 
 def netflix_count(nf):
     # Fall 22
-    nf_fa22 = nf[(nf.Date >= "2022-08-30") & (nf.Date <= "2022-11-29")]
+    nf_fa22 = nf[(nf.Date >= "2022-08-30") & (nf.Date <= "2022-11-29")].copy()
     grouped_nf_fa22 = nf_fa22.groupby("Date").count()
     nf_fa22.rename({"Title": "numberWatched"}, axis=1, inplace=True)
 
     # Spring 22
-    nf_sp22 = nf[(nf.Date >= "2022-01-12") & (nf.Date <= "2022-05-05")]
+    nf_sp22 = nf[(nf.Date >= "2022-01-12") & (nf.Date <= "2022-05-05")].copy()
     grouped_nf_sp22 = nf_sp22.groupby("Date").count()
     nf_sp22.rename({"Title": "numberWatched"}, axis=1, inplace=True)
     return grouped_nf_fa22, grouped_nf_sp22
