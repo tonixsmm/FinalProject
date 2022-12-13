@@ -14,16 +14,19 @@ def load_apple():
     df["startDate"] = pd.to_datetime(df["startDate"])
     df["endDate"] = pd.to_datetime(df["endDate"])
     df["creationDate"] = pd.to_datetime(df["creationDate"])
+
     return df
 
 def load_netflix():
     nf = pd.read_csv("NetflixViewingHistory.csv")
     nf["Date"] = pd.to_datetime(nf["Date"])
     nf.sort_values(by="Date", inplace=True, ignore_index=True)
+
     return nf
 
 def sleep_filtering(df):
     df = df[df.type == "HKCategoryTypeIdentifierSleepAnalysis"].copy()
+
     return df
 
 def sleep_cleaning(df):
@@ -40,6 +43,7 @@ def sleep_cleaning(df):
 
     # Reset indexes
     df.reset_index(inplace=True)
+
     return df
 
 def time_calculation(df):
@@ -52,6 +56,7 @@ def time_calculation(df):
     # Concatenate to the DataFrame
     df = pd.concat([df, sleepTime], axis=1, ignore_index=False)
     df.rename({0: "sleepTime"}, axis=1, inplace=True)
+
     return sleepTime, df
 
 def awaken_time(df):
@@ -59,10 +64,31 @@ def awaken_time(df):
     grouped = df["creationDate"].value_counts()
 
     # Substract its value for 1 to find the actual awaken time
-    for row in grouped:
-        print(grouped[row])
-        # print(grouped.index[row])
-        # grouped[row] = int(grouped[row]) - 1
+    for row in grouped.index:
+        grouped.loc[row] = grouped.loc[row] - 1
+
+    # Manual cleaning
+    grouped["2022-10-23"] = 0
+    grouped["2022-09-14"] = 0
+    grouped["2022-10-18"] = 2
+    grouped["2022-10-22"] = 0
+    grouped["2022-09-17"] = 2
+    grouped["2022-07-04"] = 0
+    grouped["2021-12-23"] = 0
+    grouped["2021-09-27"] = 0
+    grouped["2021-12-20"] = 1
+    grouped["2022-09-12"] = 0
+    grouped["2022-11-02"] = 0
+    grouped["2021-10-20"] = 0
+    grouped["2022-02-07"] = 2
+    grouped["2022-10-30"] = 1
+    grouped["2021-12-24"] = 2
+    grouped["2022-01-09"] = 1
+    grouped["2021-12-08"] = 2
+    grouped["2021-12-31"] = 1
+    grouped["2022-09-22"] = 0
+    grouped["2022-09-27"] = 5
+
     return grouped
 
 def dow_merge(df):
@@ -71,17 +97,18 @@ def dow_merge(df):
     df.drop("date", axis=1, inplace=True)
     df.rename({"key_0": "creationDate"}, axis=1, inplace=True)
     df["creationDate"] = pd.to_datetime(df["creationDate"])
+
     return df
 
-def sleep_groupby(df):
-    # Date format conversion
-    df["startDate"] = df["startDate"].dt.strftime("%Y-%m-%d")
-    df["endDate"] = df["endDate"].dt.strftime("%Y-%m-%d")
-    df["creationDate"] = df["creationDate"].dt.strftime("%Y-%m-%d")
-
+def sleep_groupby(df, grouped):
     # Groupby
     df = df.groupby("creationDate")["sleepTime"].sum()
     df = df.to_frame()
+
+    # Concatenate to the same DataFrame
+    df = pd.concat([df, grouped], axis=1, ignore_index=False)
+    df.rename({"creationDate": "numberAwake"}, axis=1, inplace=True)
+
     return df
 
 def sem_split(df):
@@ -89,23 +116,17 @@ def sem_split(df):
     fall_22 = df[(df.creationDate >= "2022-08-30") & (df.creationDate <= "2022-11-29")].copy()
     spring_22 = df[(df.creationDate >= "2022-01-12") & (df.creationDate <= "2022-05-05")].copy()
 
-    # Groupby
-    fall_22 = fall_22.groupby("creationDate")["sleepTime"].sum()
-    spring_22 = spring_22.groupby("creationDate")["sleepTime"].sum()
+    # Reset index
+    fall_22.reset_index(inplace=True)
+    spring_22.reset_index(inplace=True)
 
     return fall_22, spring_22
 
 def netflix_count(nf):
-    # Fall 22
-    nf_fa22 = nf[(nf.Date >= "2022-08-30") & (nf.Date <= "2022-11-29")].copy()
-    grouped_nf_fa22 = nf_fa22.groupby("Date").count()
-    nf_fa22.rename({"Title": "numberWatched"}, axis=1, inplace=True)
+    nf = nf.groupby("Date").count()
+    nf.rename({"Title": "numberWatched"}, axis=1, inplace=True)
 
-    # Spring 22
-    nf_sp22 = nf[(nf.Date >= "2022-01-12") & (nf.Date <= "2022-05-05")].copy()
-    grouped_nf_sp22 = nf_sp22.groupby("Date").count()
-    nf_sp22.rename({"Title": "numberWatched"}, axis=1, inplace=True)
-    return grouped_nf_fa22, grouped_nf_sp22
+    return nf
 
 def health_nf_merge(fall_22, spring_22, nf_fa22, nf_sp22):
     # Fall 22
@@ -115,7 +136,36 @@ def health_nf_merge(fall_22, spring_22, nf_fa22, nf_sp22):
     # Spring 22
     spring_22 = spring_22.merge(nf_sp22, how="outer", right_index=True, left_index=True)
     spring_22["sleepTime"] = spring_22["sleepTime"] / timedelta(hours=1)
+
     return fall_22, spring_22
+
+def sleep_nf_merge(df, nf):
+    # Merge two DataFrame
+    nf.rename({"Date":"creationDate"}, axis=1, inplace=True)
+    df = df.merge(nf, how="outer", on="creationDate")
+
+    # Assign NaN with 0
+    df["numberWatched"] = df["numberWatched"].fillna(0)
+
+    # Convert sleepTime to hour format
+    df["sleepTime"] = df["sleepTime"] / timedelta(hours=1)
+
+    return df
+
+def netflix_filtering(df, nf):
+    remove = []
+    nf.reset_index(inplace=True)
+    for row in range(len(nf.index)):
+        count = 0
+        for item in range(len(df)):
+            if nf.iloc[row, 0] != df.iloc[item, 0]:
+                count += 1
+        if count == len(df):
+            remove.append(row)
+    
+    nf.drop(remove, axis=0, inplace=True)
+
+    return nf
 
 def data_visualization(df, sem):
     plt.figure
