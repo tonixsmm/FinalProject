@@ -167,14 +167,27 @@ def netflix_filtering(df, nf):
 
     return nf
 
-def data_visualization(df, sem):
-    plt.figure
+def data_visualization(fall_22, spring_22, elem):
+    fa22_grouped_by_dow = fall_22.groupby("dayOfWeek").mean()
+    sp22_grouped_by_dow = spring_22.groupby("dayOfWeek").mean()
 
-    plt.plot(df.index, df["num_of_movies_watched"], label="Number of movie watched")
-    plt.plot(df.index, df["sleepTime"], label="Sleep Time")
+    x = np.arange(7)  # the label locations
+    width = 0.25 # the width of the bars
 
-    plt.xticks(rotation=45, ha="right")
-    plt.legend()
-    plt.title(sem)
+    fig, ax = plt.subplots()
+    fall_22 = ax.bar(x - width/2, fa22_grouped_by_dow[elem], width,label="Fall 22")
+    return_visit = ax.bar(x + width/2, sp22_grouped_by_dow[elem], width, label="Spring 22")
+
+    fig.set_figwidth(16)
+    fig.set_figheight(9)
+    ylabel = "Mean " + elem
+    ax.set_ylabel(ylabel)
+    ax.set_xlabel("Day of Week")
+
+    ax.set_xticks(x, fa22_grouped_by_dow.index, rotation=45, ha="right")
+    ax.legend(title="Semester")
+
+    title = "Mean " + elem + " and Semesters"
+    plt.title(title)
 
     plt.show()
