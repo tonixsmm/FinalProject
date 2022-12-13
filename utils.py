@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from datetime import timedelta
 from scipy import stats
+from sklearn.preprocessing import MinMaxScaler
 
 def load_apple():
     # Load file
@@ -205,3 +206,10 @@ def hypo_2s_1t(test1, test2, alpha, t_critical):
         print("Do not reject H0")
     else:
         print("Conflicting result")
+
+def ml_preprocessing(df):
+    y = df[""]
+
+def kNN_class(df):
+    scaler = MinMaxScaler()
+    scaler
