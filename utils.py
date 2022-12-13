@@ -54,6 +54,17 @@ def time_calculation(df):
     df.rename({0: "sleepTime"}, axis=1, inplace=True)
     return sleepTime, df
 
+def awaken_time(df):
+    df["creationDate"] = df["creationDate"].dt.strftime("%Y-%m-%d")
+    grouped = df["creationDate"].value_counts()
+
+    # Substract its value for 1 to find the actual awaken time
+    for row in grouped:
+        print(grouped[row])
+        # print(grouped.index[row])
+        # grouped[row] = int(grouped[row]) - 1
+    return grouped
+
 def dow_merge(df):
     dow_df = pd.read_csv("dow.csv")
     df = df.merge(dow_df, on=df.index)
