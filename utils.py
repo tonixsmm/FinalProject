@@ -12,7 +12,7 @@ from sklearn.tree import DecisionTreeClassifier
 
 def load_apple():
     # Load file
-    df = pd.read_csv("export_converted.csv")
+    df = pd.read_csv("export_converted.csv", low_memory=False)
 
     df.rename(columns={"Unnamed: 0":"originalIndex"}, inplace=True)
 
