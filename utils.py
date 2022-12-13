@@ -193,7 +193,7 @@ def data_visualization(fall_22, spring_22, elem):
     ax.set_xticks(x, fa22_grouped_by_dow.index, rotation=45, ha="right")
     ax.legend(title="Semester")
 
-    title = "Mean " + elem + " and Semesters"
+    title = "Mean " + elem + " per Semesters"
     plt.title(title)
 
     plt.show()
@@ -224,9 +224,11 @@ def ml_preprocessing(df):
     df = pd.concat([df, week], axis=1, ignore_index=False)
     df.rename({0: "isWeekday"}, axis=1, inplace=True)
 
+    df.drop("creationDate", axis=1, inplace=True)
+
     le = LabelEncoder()
     for item in df.columns:
-        if item == "dayOfWeek" or item == "creationDate" or item == "isWeekday":
+        if item == "dayOfWeek" or item == "isWeekday":
             le.fit(df[item])
             df[item] = le.transform(df[item])
 
@@ -247,7 +249,7 @@ def scale_split(X, y):
 def kNN_class(X_train, X_test, y_train, y_test):
     acc_test = 0
     position = 0
-    for i in range(len(y_test)):
+    for i in range(149):
         knn_clf = KNeighborsClassifier(n_neighbors=i + 1)
         knn_clf.fit(X_train, y_train)
         y_pred = knn_clf.predict(X_test)
@@ -255,7 +257,7 @@ def kNN_class(X_train, X_test, y_train, y_test):
         if acc > acc_test:
             acc_test = acc
             position = i
-    print("Best accuracy:", acc_test, "position:", position)
+    print("Best accuracy:", acc_test, "Number of Neighbors:", position + 1)
 
 def tree_class(X_train, X_test, y_train, y_test):
     tree_clf = DecisionTreeClassifier(random_state=0)
