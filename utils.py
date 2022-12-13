@@ -191,3 +191,17 @@ def data_visualization(fall_22, spring_22, elem):
     plt.title(title)
 
     plt.show()
+
+def hypo_2s_1t(test1, test2, alpha, t_critical):
+    t_computed, pval = stats.ttest_ind(test1, test2)
+    print("t_computed is:", t_computed)
+    print("p_value is:", pval / 2)
+
+    alpha = alpha
+    t_critical = t_critical
+    if (pval / 2) < alpha and t_computed < t_critical:
+        print("Reject H0")
+    elif (pval / 2) > alpha and t_computed >= t_critical:
+        print("Do not reject H0")
+    else:
+        print("Conflicting result")
