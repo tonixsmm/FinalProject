@@ -4,6 +4,11 @@ import matplotlib.pyplot as plt
 from datetime import timedelta
 from scipy import stats
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import LabelEncoder
+from sklearn.model_selection import train_test_split
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import accuracy_score
+from sklearn.tree import DecisionTreeClassifier
 
 def load_apple():
     # Load file
@@ -208,8 +213,52 @@ def hypo_2s_1t(test1, test2, alpha, t_critical):
         print("Conflicting result")
 
 def ml_preprocessing(df):
-    y = df[""]
+    week = []
+    for row in range(len(df)):
+        if df.iloc[row, 3] == "Saturday" or df.iloc[row, 3] == "Sunday":
+            week.append("No")
+        else:
+            week.append("Yes")
+    
+    week = pd.Series(week, dtype=object)
+    df = pd.concat([df, week], axis=1, ignore_index=False)
+    df.rename({0: "isWeekday"}, axis=1, inplace=True)
 
-def kNN_class(df):
+    le = LabelEncoder()
+    for item in df.columns:
+        if item == "dayOfWeek" or item == "creationDate" or item == "isWeekday":
+            le.fit(df[item])
+            df[item] = le.transform(df[item])
+
+    y = df["dayOfWeek"]
+    X = df.drop("dayOfWeek", axis=1)
+
+    return X, y
+
+def scale_split(X, y):
     scaler = MinMaxScaler()
-    scaler
+    scaler.fit(X)
+    X_normalized = scaler.transform(X)
+
+    X_train, X_test, y_train, y_test = train_test_split(X_normalized, y, test_size=0.25, random_state=0, stratify=y)
+
+    return X_train, X_test, y_train, y_test
+
+def kNN_class(X_train, X_test, y_train, y_test):
+    acc_test = 0
+    position = 0
+    for i in range(len(y_test)):
+        knn_clf = KNeighborsClassifier(n_neighbors=i + 1)
+        knn_clf.fit(X_train, y_train)
+        y_pred = knn_clf.predict(X_test)
+        acc = accuracy_score(y_test, y_pred)
+        if acc > acc_test:
+            acc_test = acc
+            position = i
+    print("Best accuracy:", acc_test, "position:", position)
+
+def tree_class(X_train, X_test, y_train, y_test):
+    tree_clf = DecisionTreeClassifier(random_state=0)
+    tree_clf.fit(X_train, y_train)
+    acc = tree_clf.score(X_test, y_test)
+    print("Accuracy:", acc)
