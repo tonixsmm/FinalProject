@@ -1,5 +1,6 @@
 ## CPSC 222 Final Project
- 
+
+
 A Data Science project on sleep data and Netflix viewing activity.
 
 
