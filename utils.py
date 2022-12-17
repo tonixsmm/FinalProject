@@ -44,11 +44,21 @@ def load_netflix():
     return nf
 
 def sleep_filtering(df):
-    # This function filters which instance is sleep data in "type" attribute
+    # This function filters which instances and attributes are related to sleep data
     # Parameter: a DataFramme
     # Return: a DataFrame
 
     df = df[df.type == "HKCategoryTypeIdentifierSleepAnalysis"].copy()
+
+    rel_col = ["type", "sourceName", "sourceVersion", "unit", "creationDate", "startDate", "endDate", "value", "device", "MetadataEntry"]
+
+    for item in df.columns:
+        count = 0
+        for elem in rel_col:
+            if item != elem:
+                count += 1
+        if count == len(rel_col):
+            df.drop(item, axis=1, inplace=True)
 
     return df
 
@@ -65,7 +75,6 @@ def sleep_cleaning(df):
     df.drop("value", axis=1, inplace=True)
     df.drop("device", axis=1, inplace=True)
     df.drop("MetadataEntry", axis=1, inplace=True)
-    df.drop("HeartRateVariabilityMetadataList", axis=1, inplace=True)
     df.drop("originalIndex", axis=1, inplace=True)
 
     # Reset indexes
